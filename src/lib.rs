@@ -44,6 +44,8 @@ fn count_u8(slice: &[u8]) -> usize{
     let mut count = 0;
     for c in slice {
         let ci = *c as i8;
+        //*c & 0xC0 != 0x80
+        // 0x00 <= c <= 0x 7f | 0xc0 <= c <= 0xff
         if ci > -0x41 {
             count += 1;
         }
@@ -68,8 +70,8 @@ unsafe fn count_256(slice: &[__m256i]) -> usize{
     if slice.len() == 0 { return 0 }
     //println!("avx2");
     let mut count = 0 as usize;
-    let windows = slice.windows(255);
-    for block in windows {
+    let chunks = slice.chunks(255);
+    for block in chunks {
         let mut sum = _mm256_setzero_si256();
         for s in block {
             sum = _mm256_sub_epi8(sum, _mm256_cmpgt_epi8(_mm256_load_si256(s), _mm256_set1_epi8(-0x41)));
@@ -106,6 +108,11 @@ use super::*;
         assert_eq!(a.chars().count(),chars_count_u32(a));
         let a = "rust=錆";
         assert_eq!(a.chars().count(),chars_count_u32(a));
+        let a = "rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆";
+        assert_eq!(a.chars().count(),chars_count_u32(a));
+        let a = "rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆
+        rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;;rust=錆;rust=錆;rust=錆;;v;rust=錆;rust=錆;;v;rust=錆;rust=錆;v;rust=錆;v;v;v;rust=錆;rust=錆;rust=錆";
+        assert_eq!(a.chars().count(),chars_count_u32(a));
     }
 
     #[test]
@@ -113,6 +120,8 @@ use super::*;
         let a = "Hello, world!";
         assert_eq!(a.chars().count(),chars_count_256(a));
         let a = "rust=錆";
+        assert_eq!(a.chars().count(),chars_count_256(a));
+        let a = "rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆";
         assert_eq!(a.chars().count(),chars_count_256(a));
         let a = "rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆
         rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;;rust=錆;rust=錆;rust=錆;;v;rust=錆;rust=錆;;v;rust=錆;rust=錆;v;rust=錆;v;v;v;rust=錆;rust=錆;rust=錆";
