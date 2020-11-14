@@ -4,7 +4,9 @@
 extern crate test;
 use std::ptr;
 use std::mem::forget;
+//use rand::{rngs::StdRng,Rng,thread_rng,SeedableRng};
 use faster_char_count::*;
+use criterion::{criterion_group, criterion_main,BenchmarkId,Criterion,PlotConfiguration,AxisScale,BenchmarkGroup,measurement::Measurement};
 
 pub fn black_box<T>(dummy: T) -> T{    unsafe {
     let ret = ptr::read_volatile(&dummy);
@@ -12,266 +14,70 @@ pub fn black_box<T>(dummy: T) -> T{    unsafe {
     ret
 }}
 
-const TEST_STR1 : &str = "錆";
-const TEST_STR2 : &str = "錆,rust;";
-const TEST_STR3 : &str = "錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;";
-const TEST_STR4 : &str = "錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;";
-const TEST_STR5 : &str = "錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;";
-const TEST_STR6 : &str = "錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;
-錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;錆,rust;";
-
-
-fn chars_count_my_bench(b: &mut test::Bencher,s: &str) {
-    b.iter(|| black_box(s.chars_count()))
+fn group_count_bench<'a, M : Measurement>(mut group: BenchmarkGroup<'a, M>, test_strs : impl IntoIterator<Item = &'a (usize,&'a str)> ){
+    for test_str in test_strs{
+        group.bench_with_input(BenchmarkId::new("avx",&test_str.0),  &test_str.1, |b,i| b.iter(|| chars_count_256(i)));
+        //group.bench_with_input(BenchmarkId::new("usize",&test_str.0),&test_str.1, |b,i| b.iter(|| chars_count_usize(i)));
+        group.bench_with_input(BenchmarkId::new("u8",&test_str.0),   &test_str.1, |b,i| b.iter(|| chars_count_u8(i)));
+        group.bench_with_input(BenchmarkId::new("u32",&test_str.0),  &test_str.1, |b,i| b.iter(|| chars_count_u32(i)));
+        group.bench_with_input(BenchmarkId::new("u64",&test_str.0),  &test_str.1, |b,i| b.iter(|| chars_count_u64(i)));
+        group.bench_with_input(BenchmarkId::new("mix",&test_str.0),  &test_str.1, |b,i| b.iter(|| i.chars_count()));
+        group.bench_with_input(BenchmarkId::new("std",&test_str.0),  &test_str.1, |b,i| b.iter(|| i.chars().count()));
+    }
 }
 
-fn chars_count_std_bench(b: &mut test::Bencher,s: &str) {
-    b.iter(|| black_box(s.chars().count()))
+fn count_bench_1_small(c: &mut Criterion) {
+    let mut test_strs_a = vec![];
+    let a = "a";
+    let a64 = a.repeat(64);
+    test_strs_a.push((0,""));
+    test_strs_a.push((1,a));
+    test_strs_a.push((64,&a64));
+    for i in [2,4,8,16,32,48].iter(){
+        unsafe{
+            test_strs_a.push((*i,a64.get_unchecked(..a.len()*i)));
+        }
+    }
+    let mut group = c.benchmark_group("count_bench_1byte_small");
+    group_count_bench(group,test_strs_a.iter());
 }
 
-fn u32_bench(b: &mut test::Bencher,s: &str) {
-    b.iter(|| black_box(chars_count_u32(s)))
+fn count_bench_1(c: &mut Criterion) {
+    let mut test_strs_a = vec![];
+    let a = "a";
+    let a10000 = a.repeat(10000);
+    test_strs_a.push((1,a));
+    test_strs_a.push((10000,&a10000));
+    for i in [10,100,1000].iter(){
+        unsafe{
+            test_strs_a.push((*i,a10000.get_unchecked(..a.len()*i)));
+        }
+    }
+    let mut group = c.benchmark_group("count_bench_1byte");
+    let plot_config = PlotConfiguration::default()
+        .summary_scale(AxisScale::Logarithmic);
+    group.plot_config(plot_config);
+    group_count_bench(group,test_strs_a.iter());
 }
 
-fn avx2_bench(b: &mut test::Bencher,s: &str) {
-    b.iter(|| black_box(chars_count_256(s)))
+fn count_bench_3(c: &mut Criterion) {
+    let mut test_strs_s = vec![];
+    let s = "錆";
+    let s10000 = s.repeat(10000);
+    test_strs_s.push((1,s));
+    test_strs_s.push((10000,&s10000));
+    for i in [10,100,1000].iter(){
+        unsafe{
+            test_strs_s.push((*i,s10000.get_unchecked(..s.len()*i)));
+        }
+    }
+    let mut group = c.benchmark_group("count_bench_3byte");
+    let plot_config = PlotConfiguration::default()
+        .summary_scale(AxisScale::Logarithmic);
+    group.plot_config(plot_config);
+    group_count_bench(group,test_strs_s.iter());
 }
 
-#[bench]
-fn chars_count_std_bench_1(b: &mut test::Bencher) {
-    chars_count_std_bench(b,TEST_STR1)
-}
-
-#[bench]
-fn u32_bench_1(b: &mut test::Bencher) {
-    u32_bench(b,TEST_STR1)
-}
-
-#[bench]
-fn avx2_bench_1(b: &mut test::Bencher) {
-    avx2_bench(b,TEST_STR1)
-}
-
-#[bench]
-fn chars_count_std_bench_2(b: &mut test::Bencher) {
-    chars_count_std_bench(b,TEST_STR2)
-}
-
-#[bench]
-fn u32_bench_2(b: &mut test::Bencher) {
-    u32_bench(b,TEST_STR2)
-}
-
-#[bench]
-fn avx2_bench_2(b: &mut test::Bencher) {
-    avx2_bench(b,TEST_STR2)
-}
-#[bench]
-fn chars_count_std_bench_3(b: &mut test::Bencher) {
-    chars_count_std_bench(b,TEST_STR3)
-}
-
-#[bench]
-fn u32_bench_3(b: &mut test::Bencher) {
-    u32_bench(b,TEST_STR3)
-}
-
-#[bench]
-fn avx2_bench_3(b: &mut test::Bencher) {
-    avx2_bench(b,TEST_STR3)
-}
-#[bench]
-fn chars_count_std_bench_4(b: &mut test::Bencher) {
-    chars_count_std_bench(b,TEST_STR4)
-}
-
-#[bench]
-fn u32_bench_4(b: &mut test::Bencher) {
-    u32_bench(b,TEST_STR4)
-}
-
-#[bench]
-fn avx2_bench_4(b: &mut test::Bencher) {
-    avx2_bench(b,TEST_STR4)
-}
-#[bench]
-fn chars_count_std_bench_5(b: &mut test::Bencher) {
-    chars_count_std_bench(b,TEST_STR5)
-}
-
-#[bench]
-fn u32_bench_5(b: &mut test::Bencher) {
-    u32_bench(b,TEST_STR5)
-}
-
-#[bench]
-fn avx2_bench_5(b: &mut test::Bencher) {
-    avx2_bench(b,TEST_STR5)
-}
-
-#[bench]
-fn chars_count_std_bench_6(b: &mut test::Bencher) {
-    chars_count_std_bench(b,TEST_STR6)
-}
-
-#[bench]
-fn u32_bench_6(b: &mut test::Bencher) {
-    u32_bench(b,TEST_STR6)
-}
-
-#[bench]
-fn avx2_bench_6(b: &mut test::Bencher) {
-    avx2_bench(b,TEST_STR6)
-}
-
-
-fn u64_bench(b: &mut test::Bencher,s: &str) {
-    b.iter(|| black_box(faster_char_count::chars_count_u64(s)))
-}
-
-#[bench]
-fn u64_bench_1(b: &mut test::Bencher) {
-    u64_bench(b,TEST_STR1)
-}
-#[bench]
-fn u64_bench_2(b: &mut test::Bencher) {
-    u64_bench(b,TEST_STR2)
-}
-#[bench]
-fn u64_bench_3(b: &mut test::Bencher) {
-    u64_bench(b,TEST_STR3)
-}
-#[bench]
-fn u64_bench_4(b: &mut test::Bencher) {
-    u64_bench(b,TEST_STR4)
-}
-#[bench]
-fn u64_bench_5(b: &mut test::Bencher) {
-    u64_bench(b,TEST_STR5)
-}
-#[bench]
-fn u64_bench_6(b: &mut test::Bencher) {
-    u64_bench(b,TEST_STR6)
-}
-
-
-fn usize_bench(b: &mut test::Bencher,s: &str) {
-    b.iter(|| black_box(faster_char_count::chars_count_usize(s)))
-}
-
-#[bench]
-fn usize_bench_1(b: &mut test::Bencher) {
-    usize_bench(b,TEST_STR1)
-}
-#[bench]
-fn usize_bench_2(b: &mut test::Bencher) {
-    usize_bench(b,TEST_STR2)
-}
-#[bench]
-fn usize_bench_3(b: &mut test::Bencher) {
-    usize_bench(b,TEST_STR3)
-}
-#[bench]
-fn usize_bench_4(b: &mut test::Bencher) {
-    usize_bench(b,TEST_STR4)
-}
-#[bench]
-fn usize_bench_5(b: &mut test::Bencher) {
-    usize_bench(b,TEST_STR5)
-}
-#[bench]
-fn usize_bench_6(b: &mut test::Bencher) {
-    usize_bench(b,TEST_STR6)
-}
-
-
-fn u8_bench(b: &mut test::Bencher,s: &str) {
-    b.iter(|| black_box(faster_char_count::chars_count_u8(s)))
-}
-
-#[bench]
-fn u8_bench_1(b: &mut test::Bencher) {
-    u8_bench(b,TEST_STR1)
-}
-#[bench]
-fn u8_bench_2(b: &mut test::Bencher) {
-    u8_bench(b,TEST_STR2)
-}
-#[bench]
-fn u8_bench_3(b: &mut test::Bencher) {
-    u8_bench(b,TEST_STR3)
-}
-#[bench]
-fn u8_bench_4(b: &mut test::Bencher) {
-    u8_bench(b,TEST_STR4)
-}
-#[bench]
-fn u8_bench_5(b: &mut test::Bencher) {
-    u8_bench(b,TEST_STR5)
-}
-#[bench]
-fn u8_bench_6(b: &mut test::Bencher) {
-    u8_bench(b,TEST_STR6)
-}
-
-
-#[bench]
-fn chars_count_my_bench_1(b: &mut test::Bencher) {
-    chars_count_my_bench(b,TEST_STR1)
-}
-#[bench]
-fn chars_count_my_bench_2(b: &mut test::Bencher) {
-    chars_count_my_bench(b,TEST_STR2)
-}
-#[bench]
-fn chars_count_my_bench_3(b: &mut test::Bencher) {
-    chars_count_my_bench(b,TEST_STR3)
-}
-#[bench]
-fn chars_count_my_bench_4(b: &mut test::Bencher) {
-    chars_count_my_bench(b,TEST_STR4)
-}
-#[bench]
-fn chars_count_my_bench_5(b: &mut test::Bencher) {
-    chars_count_my_bench(b,TEST_STR5)
-}
-#[bench]
-fn chars_count_my_bench_6(b: &mut test::Bencher) {
-    chars_count_my_bench(b,TEST_STR6)
-}
-
-
-
-
-
-/*
-#[bench]
-fn chars_count_std_bench(b: &mut test::Bencher) {
-    b.iter(|| black_box(TEST_STR1.chars().count()))
-}
-
-#[bench]
-fn u32_bench(b: &mut test::Bencher) {
-    b.iter(|| black_box(faster_char_count::chars_count_u32(TEST_STR1)))
-}
-
-#[bench]
-fn avx2_bench(b: &mut test::Bencher) {
-    b.iter(|| black_box(faster_char_count::chars_count_256(TEST_STR1)))
-}
-*/
+criterion_group!(benches, count_bench_1,count_bench_3);
+criterion_group!(benches_small, count_bench_1_small);
+criterion_main!(benches_small);
