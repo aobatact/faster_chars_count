@@ -24,12 +24,12 @@ fn group_count_bench<'a, M: Measurement>(
     test_strs: impl IntoIterator<Item = &'a (usize, &'a str)>,
 ) {
     for test_str in test_strs {
-        group.bench_with_input(BenchmarkId::new("avx", &test_str.0), &test_str.1, |b, i| {
-            b.iter(|| chars_count_256(i))
-        });
         //group.bench_with_input(BenchmarkId::new("usize",&test_str.0),&test_str.1, |b,i| b.iter(|| chars_count_usize(i)));
         group.bench_with_input(BenchmarkId::new("u8", &test_str.0), &test_str.1, |b, i| {
             b.iter(|| chars_count_u8(i))
+        });
+        group.bench_with_input(BenchmarkId::new("avx", &test_str.0), &test_str.1, |b, i| {
+            b.iter(|| chars_count_256(i))
         });
         group.bench_with_input(BenchmarkId::new("u32", &test_str.0), &test_str.1, |b, i| {
             b.iter(|| chars_count_u32(i))
@@ -53,7 +53,7 @@ fn count_bench_1_small(c: &mut Criterion) {
     test_strs_a.push((0, ""));
     test_strs_a.push((1, a));
     test_strs_a.push((64, &a64));
-    for i in [2, 4, 8, 16, 32, 48].iter() {
+    for i in [2, 4, 8, 12, 16, 24, 32, 48, 63].iter() {
         unsafe {
             test_strs_a.push((*i, a64.get_unchecked(..a.len() * i)));
         }
@@ -62,7 +62,7 @@ fn count_bench_1_small(c: &mut Criterion) {
     group_count_bench(group, test_strs_a.iter());
 }
 
-fn count_bench_1(c: &mut Criterion) {
+fn count_bench_1_large(c: &mut Criterion) {
     let mut test_strs_a = vec![];
     let a = "a";
     let a10000 = a.repeat(10000);
@@ -79,7 +79,7 @@ fn count_bench_1(c: &mut Criterion) {
     group_count_bench(group, test_strs_a.iter());
 }
 
-fn count_bench_3(c: &mut Criterion) {
+fn count_bench_3_large(c: &mut Criterion) {
     let mut test_strs_s = vec![];
     let s = "錆";
     let s10000 = s.repeat(10000);
@@ -96,6 +96,6 @@ fn count_bench_3(c: &mut Criterion) {
     group_count_bench(group, test_strs_s.iter());
 }
 
-criterion_group!(benches, count_bench_1, count_bench_3);
+criterion_group!(benches_large, count_bench_1_large, count_bench_3_large);
 criterion_group!(benches_small, count_bench_1_small);
-criterion_main!(benches_small);
+criterion_main!(benches_small,benches_large);
