@@ -1,8 +1,9 @@
 #![feature(stdarch)]
+#![feature(destructuring_assignment)]
 
+use core::mem;
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
-use core::mem;
 
 pub trait CharsCount {
     fn chars_count(&self) -> usize;
@@ -15,7 +16,7 @@ impl CharsCount for str {
 }
 
 pub fn chars_count_mix1(s: &str) -> usize {
-    let slice : &[u8] = s.as_ref();
+    let slice: &[u8] = s.as_ref();
     let (pre, mid_count, suf) = match slice.len() {
         35..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
@@ -32,9 +33,8 @@ pub fn chars_count_mix1(s: &str) -> usize {
     count_u8(pre) + count_u8(suf) + mid_count
 }
 
-
 pub fn chars_count_mix2(s: &str) -> usize {
-    fn align_part(slice : &[u8]) -> (&[u8],usize,&[u8]) {
+    fn align_part(slice: &[u8]) -> (&[u8], usize, &[u8]) {
         let len = slice.len();
         match len {
             32..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
@@ -49,21 +49,54 @@ pub fn chars_count_mix2(s: &str) -> usize {
                 let (pre, mid, suf) = slice.align_to::<u32>();
                 (pre, count_32(mid), suf)
             },
-            0 | 1 => (<&[u8]>::default(),len,<&[u8]>::default()),
-            _ => (<&[u8]>::default(),count_u8(slice),<&[u8]>::default()),
+            0 | 1 => (<&[u8]>::default(), len, <&[u8]>::default()),
+            _ => (<&[u8]>::default(), count_u8(slice), <&[u8]>::default()),
         }
     }
 
-    let slice : &[u8] = s.as_ref();
-    let (mut pre, mut count,mut suf) = align_part(slice);
+    let slice: &[u8] = s.as_ref();
+    let (mut pre, mut count, mut suf) = align_part(slice);
     while !pre.is_empty() {
-        let (pre_2,m_2,suf_2) = align_part(pre);
+        let (pre_2, m_2, suf_2) = align_part(pre);
         debug_assert!(suf_2.is_empty());
         pre = pre_2;
         count += m_2;
     }
     while !suf.is_empty() {
-        let (pre_2,m_2,suf_2) = align_part(suf);
+        let (pre_2, m_2, suf_2) = align_part(suf);
+        debug_assert!(pre_2.is_empty());
+        suf = suf_2;
+        count += m_2;
+    }
+    count
+}
+
+pub fn chars_count_mix2_suf(s: &str) -> usize {
+    fn align_part(slice: &[u8]) -> (&[u8], usize, &[u8]) {
+        let len = slice.len();
+        match len {
+            32..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
+                let (pre, mid, suf) = slice.align_to::<__m256i>();
+                (pre, count_256(mid), suf)
+            },
+            8..=usize::MAX => unsafe {
+                let (pre, mid, suf) = slice.align_to::<u64>();
+                (pre, count_64(mid), suf)
+            },
+            4..=7 => unsafe {
+                let (pre, mid, suf) = slice.align_to::<u32>();
+                (pre, count_32(mid), suf)
+            },
+            0 | 1 => (<&[u8]>::default(), len, <&[u8]>::default()),
+            _ => (<&[u8]>::default(), count_u8(slice), <&[u8]>::default()),
+        }
+    }
+
+    let slice: &[u8] = s.as_ref();
+    let (pre, mut count, mut suf) = align_part(slice);
+    count += count_u8(pre);
+    while !suf.is_empty() {
+        let (pre_2, m_2, suf_2) = align_part(suf);
         debug_assert!(pre_2.is_empty());
         suf = suf_2;
         count += m_2;
@@ -72,39 +105,39 @@ pub fn chars_count_mix2(s: &str) -> usize {
 }
 
 pub fn chars_count_mix3(s: &str) -> usize {
-    #[inline]
-    unsafe fn align<T>( pre_len : &mut usize, right_len :&mut  usize, right_ptr : &mut *const u8) -> bool{
-        let _offset = right_ptr.align_offset(mem::align_of::<T>());
-        if _offset < *right_len {
-            *right_len -= _offset;
-            *pre_len = _offset;
-            *right_ptr = right_ptr.add(_offset);
-            true
-        } else {
-            false
-        }
-    }
+
 
     let mut right_len = s.len();
-    if(right_len < 2) {return right_len; }
+    if right_len < 2 {
+        return right_len;
+    }
     let mut count = 0;
     let mut pre_len = 0;
-    let mut right_ptr = s.as_ptr();// right means middle and suffix here
-    let mut used = 0;//for debug (and should be gone in release)
-    unsafe{
+    let mut right_ptr = s.as_ptr(); // right means middle and suffix here
+    let mut used = 0; //for debug (and hope to be gone in release)
+    unsafe {
         if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") {
             //dummy loop for break
-            loop{
+            loop {
                 if right_len >= 32 {
-                    if !align::<__m256i>(&mut pre_len,&mut right_len,&mut right_ptr) { break; }
-                    //let mid_256_len = mid_len / size_256;
+                    let _offset = right_ptr.align_offset(mem::align_of::<__m256i>());
+                    if _offset < right_len {
+                        pre_len = _offset;
+                        right_len -= _offset;
+                        right_ptr = right_ptr.add(_offset);
+                    } else {
+                        break;
+                    }
                     let mid_256_len = right_len >> 5;
                     if mid_256_len > 0 {
-                        count = count_256(core::slice::from_raw_parts(right_ptr as *const __m256i,mid_256_len));
+                        count = count_256(core::slice::from_raw_parts(
+                            right_ptr as *const __m256i,
+                            mid_256_len,
+                        ));
                         //let mid_len = mid_256_len * size_256;
                         let mid_len = mid_256_len << 5;
                         used += mid_len;
-                        right_ptr = right_ptr.add(mid_len);//suf_ptr
+                        right_ptr = right_ptr.add(mid_len); //suf_ptr
                         right_len -= mid_len;
                     }
                 }
@@ -114,18 +147,27 @@ pub fn chars_count_mix3(s: &str) -> usize {
         }
 
         //dummy loop for break
-        loop{
+        loop {
             if right_len >= 8 {
                 // pre_len > 0 means that right_ptr is aligned to __m256i so estimate as it is aligned to u64
                 if pre_len == 0 {
-                    if !align::<u64>(&mut pre_len,&mut right_len,&mut right_ptr) { break; }
+                    let _offset = right_ptr.align_offset(mem::align_of::<u64>());
+                    if _offset < right_len {
+                        pre_len = _offset;
+                        right_len -= _offset;
+                        right_ptr = right_ptr.add(_offset);
+                    } else {
+                        break;
+                    }
                 } else {
-                    debug_assert_eq!(right_ptr.align_offset(mem::align_of::<u64>()),0);
+                    debug_assert_eq!(right_ptr.align_offset(mem::align_of::<u64>()), 0);
                 }
-                //const size_64 : usize = 8;//mem::size_of::<u64>();
                 let mid_64_len = right_len >> 3;
                 if mid_64_len > 0 {
-                    count += count_64(core::slice::from_raw_parts(right_ptr as *const u64, mid_64_len));
+                    count += count_64(core::slice::from_raw_parts(
+                        right_ptr as *const u64,
+                        mid_64_len,
+                    ));
                     let mid_len = mid_64_len << 3;
                     right_len -= mid_len;
                     used += mid_len;
@@ -136,31 +178,32 @@ pub fn chars_count_mix3(s: &str) -> usize {
         }
 
         //dummy loop for break
-        loop{
+        loop {
             if right_len >= 4 {
                 // pre_len > 0 means that right_ptr is aligned to u64 so estimate as it is aligned to u32
                 if pre_len == 0 {
-                    if !align::<u64>(&mut pre_len,&mut right_len,&mut right_ptr) { break; }
+                    let _offset = right_ptr.align_offset(mem::align_of::<u32>());
+                    if _offset < right_len {
+                        pre_len = _offset;
+                        right_len -= _offset;
+                        right_ptr = right_ptr.add(_offset);
+                    } else {
+                        break;
+                    }
                 } else {
-                    debug_assert_eq!(right_ptr.align_offset(mem::align_of::<u32>()),0);
+                    debug_assert_eq!(right_ptr.align_offset(mem::align_of::<u32>()), 0);
                 }
                 //const size_32 : usize = 4;//mem::size_of::<u64>();
                 let mid_32_len = right_len >> 2;
                 if mid_32_len > 0 {
                     // we know that mid_32_len is 1 here.
-                    /*
-                    count += count_32(core::slice::from_raw_parts(right_ptr as *const u32, mid_64_len));
-                    let mid_len = mid_32_len << 3;
-                    right_len -= mid_len;
-                    used += mid_len;
-                    */
                     count += {
                         let r_32 = *(right_ptr as *const u32);
                         let f = r_32 | (!r_32 >> 1);
                         let n = f & 0x_4040_4040;
                         n.count_ones() as usize
                     };
-                    const mid_len :usize  = 4;
+                    const mid_len: usize = 4;
                     right_len -= mid_len;
                     used += mid_len;
                     right_ptr = right_ptr.add(mid_len);
@@ -170,17 +213,17 @@ pub fn chars_count_mix3(s: &str) -> usize {
         }
         let mut left_count = 0;
         let mut right_count = 0;
-        if pre_len > 0{
-            let slice :  &[u8]  =s.as_ref();
+        if pre_len > 0 {
+            let slice: &[u8] = s.as_ref();
             left_count = count_u8(&slice[..pre_len]);
         }
         if right_len > 0 {
-            right_count = count_u8(core::slice::from_raw_parts(right_ptr,right_len));
+            right_count = count_u8(core::slice::from_raw_parts(right_ptr, right_len));
         }
         count += left_count + right_count;
         used += pre_len + right_len;
     }
-    debug_assert_eq!(used,s.len());
+    debug_assert_eq!(used, s.len());
     count
 }
 
@@ -319,7 +362,10 @@ unsafe fn avx2_horizontal_sum_epi8(x: __m256i) -> usize {
 mod tests {
     use super::*;
 
-    fn count_test_base<F>(f:F) where F : Fn(&str) -> usize {
+    fn count_test_base<F>(f: F)
+    where
+        F: Fn(&str) -> usize,
+    {
         let a = "Hello, world!";
         assert_eq!(a.chars().count(), f(a));
         let a = "rust=錆";
@@ -359,13 +405,13 @@ mod tests {
     #[test]
     fn count_mix1() {
         count_test_base(chars_count_mix1);
-    }    
-    
+    }
+
     #[test]
     fn count_mix2() {
         count_test_base(chars_count_mix2);
     }
-    
+
     #[test]
     fn count_mix3() {
         count_test_base(chars_count_mix3);

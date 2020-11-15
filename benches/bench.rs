@@ -98,4 +98,4 @@ fn count_bench_3_large(c: &mut Criterion) {
 
 criterion_group!(benches_large, count_bench_1_large, count_bench_3_large);
 criterion_group!(benches_small, count_bench_1_small);
-criterion_main!(benches_small,benches_large);
+criterion_main!(benches_small, benches_large);
