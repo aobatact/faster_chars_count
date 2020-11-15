@@ -105,7 +105,34 @@ pub fn chars_count_mix2_suf(s: &str) -> usize {
 }
 
 pub fn chars_count_mix3(s: &str) -> usize {
-
+    unsafe fn count_aligned<T>(
+        pre_len: &mut usize,
+        right_len: &mut usize,
+        right_ptr: &mut *const u8,
+        f: fn(*const u8, usize) -> usize,
+    ) -> (usize, usize) {
+        if *pre_len == 0 {
+            let _offset = right_ptr.align_offset(mem::align_of::<T>());
+            if _offset < *right_len {
+                *pre_len = _offset;
+                *right_len -= _offset;
+                *right_ptr = right_ptr.add(_offset);
+            } else {
+                return (0, 0);
+            }
+        }
+        let m_size = mem::size_of::<T>();
+        let mid_t_len = *right_len / m_size;
+        if mid_t_len > 0 {
+            let count = (f)(*right_ptr, mid_t_len);
+            let mid_len = mid_t_len * m_size;
+            let used = mid_len;
+            *right_ptr = right_ptr.add(mid_len); //suf_ptr
+            *right_len -= mid_len;
+            return (count, used);
+        }
+        return (0, 0);
+    }
 
     let mut right_len = s.len();
     if right_len < 2 {
@@ -117,100 +144,50 @@ pub fn chars_count_mix3(s: &str) -> usize {
     let mut used = 0; //for debug (and hope to be gone in release)
     unsafe {
         if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") {
-            //dummy loop for break
-            loop {
-                if right_len >= 32 {
-                    let _offset = right_ptr.align_offset(mem::align_of::<__m256i>());
-                    if _offset < right_len {
-                        pre_len = _offset;
-                        right_len -= _offset;
-                        right_ptr = right_ptr.add(_offset);
-                    } else {
-                        break;
-                    }
-                    let mid_256_len = right_len >> 5;
-                    if mid_256_len > 0 {
-                        count = count_256(core::slice::from_raw_parts(
-                            right_ptr as *const __m256i,
-                            mid_256_len,
-                        ));
-                        //let mid_len = mid_256_len * size_256;
-                        let mid_len = mid_256_len << 5;
-                        used += mid_len;
-                        right_ptr = right_ptr.add(mid_len); //suf_ptr
-                        right_len -= mid_len;
-                    }
-                }
-                break;
+            if right_len >= 32 {
+                let (c, u) = count_aligned::<__m256i>(
+                    &mut pre_len,
+                    &mut right_len,
+                    &mut right_ptr,
+                    |p, l| -> usize {
+                        count_256(core::slice::from_raw_parts(p as *const __m256i, l))
+                    },
+                );
+                count += c;
+                used += u;
             }
             // for sse 128?
         }
 
-        //dummy loop for break
-        loop {
-            if right_len >= 8 {
-                // pre_len > 0 means that right_ptr is aligned to __m256i so estimate as it is aligned to u64
-                if pre_len == 0 {
-                    let _offset = right_ptr.align_offset(mem::align_of::<u64>());
-                    if _offset < right_len {
-                        pre_len = _offset;
-                        right_len -= _offset;
-                        right_ptr = right_ptr.add(_offset);
-                    } else {
-                        break;
-                    }
-                } else {
-                    debug_assert_eq!(right_ptr.align_offset(mem::align_of::<u64>()), 0);
-                }
-                let mid_64_len = right_len >> 3;
-                if mid_64_len > 0 {
-                    count += count_64(core::slice::from_raw_parts(
-                        right_ptr as *const u64,
-                        mid_64_len,
-                    ));
-                    let mid_len = mid_64_len << 3;
-                    right_len -= mid_len;
-                    used += mid_len;
-                    right_ptr = right_ptr.add(mid_len);
-                }
-            }
-            break;
+        if right_len >= 8 {
+            let (c, u) = count_aligned::<u64>(
+                &mut pre_len,
+                &mut right_len,
+                &mut right_ptr,
+                |p, l| -> usize {
+                    count_64(core::slice::from_raw_parts(p as *const u64, l))
+                },
+            );
+            count += c;
+            used += u;
         }
 
-        //dummy loop for break
-        loop {
-            if right_len >= 4 {
-                // pre_len > 0 means that right_ptr is aligned to u64 so estimate as it is aligned to u32
-                if pre_len == 0 {
-                    let _offset = right_ptr.align_offset(mem::align_of::<u32>());
-                    if _offset < right_len {
-                        pre_len = _offset;
-                        right_len -= _offset;
-                        right_ptr = right_ptr.add(_offset);
-                    } else {
-                        break;
-                    }
-                } else {
-                    debug_assert_eq!(right_ptr.align_offset(mem::align_of::<u32>()), 0);
-                }
-                //const size_32 : usize = 4;//mem::size_of::<u64>();
-                let mid_32_len = right_len >> 2;
-                if mid_32_len > 0 {
-                    // we know that mid_32_len is 1 here.
-                    count += {
-                        let r_32 = *(right_ptr as *const u32);
-                        let f = r_32 | (!r_32 >> 1);
-                        let n = f & 0x_4040_4040;
-                        n.count_ones() as usize
-                    };
-                    const mid_len: usize = 4;
-                    right_len -= mid_len;
-                    used += mid_len;
-                    right_ptr = right_ptr.add(mid_len);
-                }
-            }
-            break;
+        if right_len >= 4 {
+            let (c, u) = count_aligned::<u32>(
+                &mut pre_len,
+                &mut right_len,
+                &mut right_ptr,
+                |p, _| -> usize {
+                    let r_32 = *(p as *const u32);
+                    let f = r_32 | (!r_32 >> 1);
+                    let n = f & 0x_4040_4040;
+                    n.count_ones() as usize
+                },
+            );
+            count += c;
+            used += u;
         }
+
         let mut left_count = 0;
         let mut right_count = 0;
         if pre_len > 0 {
