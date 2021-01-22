@@ -8,12 +8,15 @@ pub trait CharsCount {
 
 impl CharsCount for str {
     fn chars_count(&self) -> usize {
-        chars_count(&self)
+        chars_count_str(&self)
     }
 }
 
-pub fn chars_count(s: &str) -> usize {
-    let slice: &[u8] = s.as_ref();
+pub fn chars_count_str(s: &str) -> usize {
+    chars_count_byte(s.as_ref())
+}
+
+pub fn chars_count_byte(slice: &[u8]) -> usize {
     let (pre, mid_count, suf) = match slice.len() {
         35..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
@@ -121,6 +124,6 @@ mod tests {
     
     #[test]
     fn count_mix1() {
-        count_test_base(chars_count);
+        count_test_base(chars_count_str);
     }
 }
