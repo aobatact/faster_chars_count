@@ -1,3 +1,14 @@
+//! Library for counting length of chars faster than [`chars()`](`str::chars`).[`count()`](`std::str::Chars::count()`)
+//!
+//! ```
+//! use faster_chars_count::*;
+//! let a = "rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;";
+//! assert_eq!(a.chars().count(), chars_count_str(a));     
+//! ```
+//! Idea is from [UTF-8のコードポイントはどうやって高速に数えるか](https://qiita.com/saka1_p/items/ff49d981cfd56f3588cc), and [UTF-8のコードポイントはどうやってもっと高速に数えるか](https://qiita.com/umezawatakeshi/items/ed23935788756c800b86).
+//! 
+//! Idea is that we only needs to count the byte witch is not a continuation byte. This can be done at the same time for 4byte ([`u64`]) or 16byte ([`__m256i`](`core::arch::x86_64::__m256i`) with avx2).
+
 #![feature(stdarch)]
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
@@ -38,7 +49,6 @@ pub fn chars_count_byte(slice: &[u8]) -> usize {
     count_u8(pre) + count_u8(suf) + mid_count
 }
 
-
 #[inline]
 fn count_u8(slice: &[u8]) -> usize {
     //if slice.len() == 0 { return 0 }
@@ -53,7 +63,6 @@ fn count_u8(slice: &[u8]) -> usize {
     }
     count
 }
-
 
 #[inline]
 fn count_usize(slice: &[usize]) -> usize {
@@ -126,7 +135,6 @@ mod tests {
         assert_eq!(a.chars().count(), f(a));
     }
 
-    
     #[test]
     fn count_mix1() {
         count_test_base(chars_count_str);
