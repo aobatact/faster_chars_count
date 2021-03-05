@@ -2,7 +2,9 @@
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
 
+/// Trait for counting chars faster than [`chars()`](`str::chars`).[`count()`](`std::str::Chars::count()`)
 pub trait CharsCount {
+    /// Counting chars faster than [`chars()`](`str::chars`).[`count()`](`std::str::Chars::count()`)
     fn chars_count(&self) -> usize;
 }
 
@@ -12,10 +14,13 @@ impl CharsCount for str {
     }
 }
 
+#[inline]
+/// Function version of faster `chars_count()`
 pub fn chars_count_str(s: &str) -> usize {
     chars_count_byte(s.as_ref())
 }
 
+/// Function version of faster `chars_count()` for `&[u8]`
 pub fn chars_count_byte(slice: &[u8]) -> usize {
     let (pre, mid_count, suf) = match slice.len() {
         35..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
