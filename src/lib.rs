@@ -7,7 +7,7 @@
 //! assert_eq!(a.chars().count(), a.chars_count());
 //! ```
 //! Idea is from [UTF-8のコードポイントはどうやって高速に数えるか](https://qiita.com/saka1_p/items/ff49d981cfd56f3588cc), and [UTF-8のコードポイントはどうやってもっと高速に数えるか](https://qiita.com/umezawatakeshi/items/ed23935788756c800b86).
-//! 
+//!
 //! Idea is that we only needs to count the byte witch is not a continuation byte. This can be done at the same time for 4byte ([`u64`]) or 16byte ([`__m256i`](`core::arch::x86_64::__m256i`) with avx2).
 
 #![feature(stdarch)]
@@ -52,12 +52,8 @@ pub fn chars_count_byte(slice: &[u8]) -> usize {
 
 #[inline]
 fn count_u8(slice: &[u8]) -> usize {
-    //if slice.len() == 0 { return 0 }
     let mut count = 0;
     for c in slice {
-        // (u8) 0x00 <= c <= 0x 7f or (i8) 0xc0 <= c <= 0xff
-        //let ci = *c as i8;
-        //if ci > -0x41 { //no diff in bench with below
         if c & 0xC0 != 0x80 {
             count += 1;
         }
@@ -79,7 +75,6 @@ fn count_usize(slice: &[usize]) -> usize {
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn count_256(slice: &[__m256i]) -> usize {
-    //if slice.len() == 0 { return 0 }
     let mut count = 0 as usize;
     let chunks = slice.chunks(255);
     for block in chunks {
