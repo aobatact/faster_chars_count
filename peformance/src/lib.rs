@@ -664,14 +664,14 @@ unsafe fn count_256_iter(slice: &[__m256i]) -> usize {
     slice
         .chunks(255)
         .map(|chunk| {
-            chunk.iter().fold(_mm256_setzero_si256(), |sum, item| {
+            avx2_horizontal_sum_epi8(chunk.iter().fold(_mm256_setzero_si256(), |sum, item| {
                 _mm256_sub_epi8(
                     sum,
                     _mm256_cmpgt_epi8(_mm256_load_si256(item), _mm256_set1_epi8(-0x41)),
                 )
-            })
+            }))
         })
-        .fold(0, |count, sum| count + avx2_horizontal_sum_epi8(sum))
+        .sum()
 }
 
 #[inline]
