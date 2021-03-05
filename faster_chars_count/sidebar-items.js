@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["chars_count_byte","Function version of faster `chars_count()` for `&[u8]`"],["chars_count_str","Function version of faster `chars_count()`"]],"trait":[["CharsCount","Trait for counting chars faster than `chars()`.`count()`"]]});

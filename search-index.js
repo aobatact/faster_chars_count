@@ -1,0 +1,4 @@
+var searchIndex = JSON.parse('{\
+"faster_chars_count":{"doc":"Library for counting length of chars faster than <code>chars()</code>.…","i":[[8,"CharsCount","faster_chars_count","Trait for counting chars faster than <code>chars()</code>.<code>count()</code>",null,null],[10,"chars_count","","Counting chars faster than <code>chars()</code>.<code>count()</code>",0,[[]]],[5,"chars_count_str","","Function version of faster <code>chars_count()</code>",null,[[]]],[5,"chars_count_byte","","Function version of faster <code>chars_count()</code> for <code>&[u8]</code>",null,[[]]]],"p":[[8,"CharsCount"]]}\
+}');
+addSearchOptions(searchIndex);initSearch(searchIndex);
