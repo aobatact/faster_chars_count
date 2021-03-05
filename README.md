@@ -13,10 +13,10 @@ Idea is from [UTF-8のコードポイントはどうやって高速に数える�
 
 ## bench
 repeated "a" (only 1byte utf8)
-![bench 1byte](peformance/lines_1.svg)
+![bench 1byte](lines_1.svg)
 
 repeated "錆" (only 3byte utf8)
-![bench 3byte](peformance/lines_3.svg)
+![bench 3byte](lines_3.svg)
 
 ## future plan
 sse (128bit)
