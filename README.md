@@ -2,6 +2,7 @@ Library for counting length of chars faster than `Chars::count()`
 
 Idea is from [UTF-8のコードポイントはどうやって高速に数えるか](https://qiita.com/saka1_p/items/ff49d981cfd56f3588cc), and [UTF-8のコードポイントはどうやってもっと高速に数えるか](https://qiita.com/umezawatakeshi/items/ed23935788756c800b86).
 
+
 ## usage
 ```
 //before
@@ -13,10 +14,13 @@ Idea is from [UTF-8のコードポイントはどうやって高速に数える�
 
 ## bench
 repeated "a" (only 1byte utf8)
-![bench 1byte](peformance/lines_1.svg)
+![bench 1byte](lines_1.svg)
 
 repeated "錆" (only 3byte utf8)
-![bench 3byte](peformance/lines_3.svg)
+![bench 3byte](lines_3.svg)
+
+This is a peformance bench branch.
+Functions in lib.rs is to compare how we can improve the performance.
 
 ## future plan
 sse (128bit)

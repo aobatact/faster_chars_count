@@ -8,7 +8,7 @@
 //! ```
 //! Idea is from [UTF-8のコードポイントはどうやって高速に数えるか](https://qiita.com/saka1_p/items/ff49d981cfd56f3588cc), and [UTF-8のコードポイントはどうやってもっと高速に数えるか](https://qiita.com/umezawatakeshi/items/ed23935788756c800b86).
 //!
-//! Idea is that we only needs to count the byte witch is not a continuation byte. This can be done at the same time for 4byte ([`u64`]) or 16byte ([`__m256i`](`core::arch::x86_64::__m256i`) with avx2).
+//! Idea is that we only needs to count the byte witch is not a continuation byte. This can be done at the same time for 4byte ([`u64`]) or 32byte ([`__m256i`](`core::arch::x86_64::__m256i`) with avx2).
 
 #![feature(stdarch)]
 #![feature(destructuring_assignment)]
@@ -33,13 +33,16 @@ pub fn chars_count_str(s: &str) -> usize {
     chars_count_mix1(s)
 }
 
+//mix1 try to split the aligned block only once.
 pub fn chars_count_mix1(s: &str) -> usize {
     let slice: &[u8] = s.as_ref();
     let (pre, mid_count, suf) = match slice.len() {
+        // 35 is to ensure that mid.len() > 0
         35..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
             (pre, count_256(mid), suf)
         },
+        // 11 is to ensure that mid.len() > 0
         11..=usize::MAX => unsafe {
             let (pre, mid, suf) = slice.align_to::<usize>();
             (pre, count_usize(mid), suf)
@@ -51,6 +54,7 @@ pub fn chars_count_mix1(s: &str) -> usize {
     count_u8(pre) + count_u8(suf) + mid_count
 }
 
+//split for u32 too
 pub fn chars_count_mix1a(s: &str) -> usize {
     let slice: &[u8] = s.as_ref();
     let (pre, mid_count, suf) = match slice.len() {
@@ -95,6 +99,7 @@ pub fn chars_count_mix1b(s: &str) -> usize {
     count_u8(pre) + count_u8(suf) + mid_count
 }
 
+//mix2 try to split the aligned block to remained prefix and suffix part too.
 pub fn chars_count_mix2(s: &str) -> usize {
     fn align_part(slice: &[u8]) -> (&[u8], usize, &[u8]) {
         let len = slice.len();
@@ -133,6 +138,7 @@ pub fn chars_count_mix2(s: &str) -> usize {
     count
 }
 
+//mix2_suf try to split the aligned block to remained suffix part too.
 pub fn chars_count_mix2_suf(s: &str) -> usize {
     fn align_part(slice: &[u8]) -> (&[u8], usize, &[u8]) {
         let len = slice.len();
@@ -166,6 +172,7 @@ pub fn chars_count_mix2_suf(s: &str) -> usize {
     count
 }
 
+//check the align manually
 pub fn chars_count_mix3(s: &str) -> usize {
     unsafe fn count_aligned<T>(
         pre_len: &mut usize,
