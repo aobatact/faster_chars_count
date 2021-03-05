@@ -1,5 +1,7 @@
 Library for counting length of chars faster than `Chars::count()`
 
+![API](https://docs.rs/faster-chars-count/badge.svg)
+
 Idea is from [UTF-8のコードポイントはどうやって高速に数えるか](https://qiita.com/saka1_p/items/ff49d981cfd56f3588cc), and [UTF-8のコードポイントはどうやってもっと高速に数えるか](https://qiita.com/umezawatakeshi/items/ed23935788756c800b86).
 
 ## usage
