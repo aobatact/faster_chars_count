@@ -6,7 +6,7 @@ use criterion::{
     criterion_group, criterion_main, measurement::Measurement, AxisScale, BenchmarkGroup,
     BenchmarkId, Criterion, PlotConfiguration,
 };
-use faster_char_count::*;
+use faster_chars_count_performance::*;
 //use rand::{rngs::StdRng, thread_rng, Rng, SeedableRng};
 use std::mem::forget;
 use std::ptr;
@@ -75,6 +75,22 @@ fn group_count_bench<'a, M: Measurement>(
     }
 }
 
+fn group_count_bench_avx<'a, M: Measurement>(
+    mut group: BenchmarkGroup<'a, M>,
+    test_strs: impl IntoIterator<Item = &'a (usize, &'a str)>,
+) {
+    for test_str in test_strs {
+        group.bench_with_input(BenchmarkId::new("avx", &test_str.0), &test_str.1, |b, i| {
+            b.iter(|| chars_count_256(i))
+        });
+        group.bench_with_input(
+            BenchmarkId::new("avx_iter", &test_str.0),
+            &test_str.1,
+            |b, i| b.iter(|| chars_count_256_iter(i)),
+        );
+    }
+}
+
 fn group_count_bench_mix1<'a, M: Measurement>(
     mut group: BenchmarkGroup<'a, M>,
     test_strs: impl IntoIterator<Item = &'a (usize, &'a str)>,
@@ -114,7 +130,7 @@ fn count_bench_1_small_mix1(c: &mut Criterion) {
             test_strs_a.push((*i, a64.get_unchecked(..a.len() * i)));
         }
     }
-    let mut group = c.benchmark_group("count_bench_1byte_small_mix1");
+    let group = c.benchmark_group("count_bench_1byte_small_mix1");
     group_count_bench_mix1(group, test_strs_a.iter());
 }
 
@@ -130,7 +146,7 @@ fn count_bench_1_small(c: &mut Criterion) {
             test_strs_a.push((*i, a64.get_unchecked(..a.len() * i)));
         }
     }
-    let mut group = c.benchmark_group("count_bench_1byte_small");
+    let group = c.benchmark_group("count_bench_1byte_small");
     group_count_bench(group, test_strs_a.iter());
 }
 
@@ -150,7 +166,7 @@ fn count_bench_1_s1_small(c: &mut Criterion) {
             test_strs_a.push((i - 1, a64.get_unchecked(1..a.len() * i)));
         }
     }
-    let mut group = c.benchmark_group("count_bench_1byte_s1_small");
+    let group = c.benchmark_group("count_bench_1byte_s1_small");
     group_count_bench(group, test_strs_a.iter());
 }
 
@@ -171,6 +187,23 @@ fn count_bench_1_large(c: &mut Criterion) {
     group_count_bench(group, test_strs_a.iter());
 }
 
+fn count_bench_1_large_avx_iter(c: &mut Criterion) {
+    let mut test_strs_a = vec![];
+    let a = "a";
+    let a10000 = a.repeat(10000);
+    test_strs_a.push((1, a));
+    test_strs_a.push((10000, &a10000));
+    for i in [10, 100, 1000].iter() {
+        unsafe {
+            test_strs_a.push((*i, a10000.get_unchecked(..a.len() * i)));
+        }
+    }
+    let mut group = c.benchmark_group("count_bench_1byte_avx_iter");
+    let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
+    group.plot_config(plot_config);
+    group_count_bench_avx(group, test_strs_a.iter());
+}
+
 fn count_bench_3_large(c: &mut Criterion) {
     let mut test_strs_s = vec![];
     let s = "錆";
@@ -189,6 +222,7 @@ fn count_bench_3_large(c: &mut Criterion) {
 }
 
 criterion_group!(benches_large, count_bench_1_large, count_bench_3_large);
+criterion_group!(benches_avx, count_bench_1_large_avx_iter);
 criterion_group!(benches_small, count_bench_1_small, count_bench_1_s1_small);
 criterion_group!(benches_small_mix1, count_bench_1_small_mix1);
-criterion_main!(benches_small_mix1);
+criterion_main!(benches_avx);

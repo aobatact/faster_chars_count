@@ -410,7 +410,7 @@ pub fn chars_count_mix3t(s: &str) -> usize {
             let c: usize;
             let u: usize;
             (c, u, pre_len, right_len, right_ptr) =
-                count_aligned::<u32>(pre_len, right_len, right_ptr, |p, l| -> usize {
+                count_aligned::<u32>(pre_len, right_len, right_ptr, |p, _l| -> usize {
                     // we know that right_len is at 4..8
                     let r_32 = *(p as *const u32);
                     let f = r_32 | (!r_32 >> 1);
@@ -506,7 +506,7 @@ pub fn chars_count_mix3ti(s: &str) -> usize {
             let c: usize;
             let u: usize;
             (c, u, pre_len, right_len, right_ptr) =
-                count_aligned::<u32>(pre_len, right_len, right_ptr, |p, l| -> usize {
+                count_aligned::<u32>(pre_len, right_len, right_ptr, |p, _l| -> usize {
                     // we know that right_len is at 4..8
                     let r_32 = *(p as *const u32);
                     let f = r_32 | (!r_32 >> 1);
@@ -538,6 +538,22 @@ pub fn chars_count_256(s: &str) -> usize {
             unsafe {
                 let (pre, mid, suf) = slice.align_to::<__m256i>();
                 return count_u8(pre) + count_256(mid) + count_u8(suf);
+            }
+        }
+    }
+
+    //fall back
+    chars_count_usize(s)
+}
+
+pub fn chars_count_256_iter(s: &str) -> usize {
+    #[cfg(target_arch = "x86_64")]
+    {
+        let slice: &[u8] = s.as_ref();
+        if is_x86_feature_detected!("avx2") {
+            unsafe {
+                let (pre, mid, suf) = slice.align_to::<__m256i>();
+                return count_u8(pre) + count_256_iter(mid) + count_u8(suf);
             }
         }
     }
@@ -644,6 +660,22 @@ unsafe fn count_256(slice: &[__m256i]) -> usize {
 
 #[inline]
 #[target_feature(enable = "avx2")]
+unsafe fn count_256_iter(slice: &[__m256i]) -> usize {
+    slice
+        .chunks(255)
+        .map(|chunk| {
+            chunk.iter().fold(_mm256_setzero_si256(), |sum, item| {
+                _mm256_sub_epi8(
+                    sum,
+                    _mm256_cmpgt_epi8(_mm256_load_si256(item), _mm256_set1_epi8(-0x41)),
+                )
+            })
+        })
+        .fold(0, |count, sum| count + avx2_horizontal_sum_epi8(sum))
+}
+
+#[inline]
+#[target_feature(enable = "avx2")]
 unsafe fn avx2_horizontal_sum_epi8(x: __m256i) -> usize {
     let sumhi = _mm256_unpackhi_epi8(x, _mm256_setzero_si256());
     let sumlo = _mm256_unpacklo_epi8(x, _mm256_setzero_si256());
@@ -703,6 +735,11 @@ mod tests {
     #[test]
     fn count_avx() {
         count_test_base(chars_count_256);
+    }
+
+    #[test]
+    fn count_avx_iter() {
+        count_test_base(chars_count_256_iter);
     }
 
     #[test]

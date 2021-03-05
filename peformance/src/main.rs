@@ -1,4 +1,4 @@
-use faster_char_count::*;
+use faster_chars_count_performance::*;
 use std::mem::forget;
 use std::ptr;
 
