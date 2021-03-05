@@ -10,7 +10,6 @@
 //!
 //! Idea is that we only needs to count the byte witch is not a continuation byte. This can be done at the same time for 4byte ([`u64`]) or 32byte ([`__m256i`](`core::arch::x86_64::__m256i`) with avx2).
 
-#![feature(stdarch)]
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
 
@@ -88,6 +87,12 @@ unsafe fn count_256(slice: &[__m256i]) -> usize {
         count += avx2_horizontal_sum_epi8(sum);
     }
     count
+}
+
+#[inline]
+#[allow(non_snake_case)]
+const fn _MM_SHUFFLE(z: u32, y: u32, x: u32, w: u32) -> i32 {
+    ((z << 6) | (y << 4) | (x << 2) | w) as i32
 }
 
 #[inline]
