@@ -1,5 +1,5 @@
 [package]
-name = "faster-char-count"
+name = "faster-chars-count"
 version = "0.1.0"
 authors = ["aobatact <aobatact144@gmail.com>"]
 edition = "2018"
@@ -8,10 +8,3 @@ edition = "2018"
 
 [dependencies]
 
-[dev-dependencies]
-criterion = "0.3"
-rand = "0.7.3"
-
-[[bench]]
-name = "bench"
-harness = false
