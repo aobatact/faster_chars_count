@@ -18,6 +18,8 @@ repeated "a" (only 1byte utf8)
 repeated "錆" (only 3byte utf8)
 ![bench 3byte](lines_3.svg)
 
+See [performance bench](https://github.com/aobatact/faster_chars_count/tree/peformance) for details.
+
 ## future plan
 sse (128bit)
 

@@ -1,6 +1,6 @@
 [package]
 name = "faster-chars-count"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["aobatact <aobatact144@gmail.com>"]
 edition = "2018"
 
