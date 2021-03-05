@@ -3,7 +3,8 @@
 //! ```
 //! use faster_chars_count::*;
 //! let a = "rust=錆;rust=錆;rust=錆;rust=錆;rust=錆;";
-//! assert_eq!(a.chars().count(), chars_count_str(a));     
+//! assert_eq!(a.chars().count(), chars_count_str(a));
+//! assert_eq!(a.chars().count(), a.chars_count());
 //! ```
 //! Idea is from [UTF-8のコードポイントはどうやって高速に数えるか](https://qiita.com/saka1_p/items/ff49d981cfd56f3588cc), and [UTF-8のコードポイントはどうやってもっと高速に数えるか](https://qiita.com/umezawatakeshi/items/ed23935788756c800b86).
 //! 
