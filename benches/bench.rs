@@ -19,6 +19,7 @@ pub fn black_box<T>(dummy: T) -> T {
     }
 }
 
+/// benchmark for all (except mix2*) functions to compare. 
 fn group_count_bench<'a, M: Measurement>(
     mut group: BenchmarkGroup<'a, M>,
     test_strs: impl IntoIterator<Item = &'a (usize, &'a str)>,
@@ -35,6 +36,9 @@ fn group_count_bench<'a, M: Measurement>(
             b.iter(|| chars_count_u32(i))
         });
         group.bench_with_input(BenchmarkId::new("u64", &test_str.0), &test_str.1, |b, i| {
+            b.iter(|| chars_count_u64(i))
+        });
+        group.bench_with_input(BenchmarkId::new("u128", &test_str.0), &test_str.1, |b, i| {
             b.iter(|| chars_count_u64(i))
         });
         group.bench_with_input(
@@ -75,6 +79,7 @@ fn group_count_bench<'a, M: Measurement>(
     }
 }
 
+/// benchmark for usize, avx and std.
 fn group_count_bench_show<'a, M: Measurement>(
     mut group: BenchmarkGroup<'a, M>,
     test_strs: impl IntoIterator<Item = &'a (usize, &'a str)>,
@@ -96,6 +101,7 @@ fn group_count_bench_show<'a, M: Measurement>(
     }
 }
 
+/// use iterator methods instead of for loop.
 fn group_count_bench_avx<'a, M: Measurement>(
     mut group: BenchmarkGroup<'a, M>,
     test_strs: impl IntoIterator<Item = &'a (usize, &'a str)>,
@@ -112,6 +118,8 @@ fn group_count_bench_avx<'a, M: Measurement>(
     }
 }
 
+
+/// compare only for mix1.
 fn group_count_bench_mix1<'a, M: Measurement>(
     mut group: BenchmarkGroup<'a, M>,
     test_strs: impl IntoIterator<Item = &'a (usize, &'a str)>,
@@ -139,6 +147,7 @@ fn group_count_bench_mix1<'a, M: Measurement>(
     }
 }
 
+///Count of repeated 'a' for small size for mix1.
 fn count_bench_1_small_mix1(c: &mut Criterion) {
     let mut test_strs_a = vec![];
     let a = "a";
@@ -155,6 +164,7 @@ fn count_bench_1_small_mix1(c: &mut Criterion) {
     group_count_bench_mix1(group, test_strs_a.iter());
 }
 
+///Count of repeated 'a' for small size.
 fn count_bench_1_small(c: &mut Criterion) {
     let mut test_strs_a = vec![];
     let a = "a";
@@ -171,6 +181,7 @@ fn count_bench_1_small(c: &mut Criterion) {
     group_count_bench(group, test_strs_a.iter());
 }
 
+///Count of repeated 'a' for small size. May be unaligned.
 fn count_bench_1_s1_small(c: &mut Criterion) {
     let mut test_strs_a = vec![];
     let a = "a";
@@ -191,6 +202,7 @@ fn count_bench_1_s1_small(c: &mut Criterion) {
     group_count_bench(group, test_strs_a.iter());
 }
 
+///Count of repeated 'a' for large size.
 fn count_bench_1_large(c: &mut Criterion) {
     let mut test_strs_a = vec![];
     let a = "a";
@@ -202,7 +214,7 @@ fn count_bench_1_large(c: &mut Criterion) {
             test_strs_a.push((*i, a10000.get_unchecked(..a.len() * i)));
         }
     }
-    let mut group = c.benchmark_group("count_bench_1byte_detailed");
+    let mut group = c.benchmark_group("count_bench_1byte_all_large");
     let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
     group.plot_config(plot_config);
     group_count_bench(group, test_strs_a.iter());
@@ -236,7 +248,7 @@ fn count_bench_1_large_show(c: &mut Criterion) {
             test_strs_a.push((*i, a10000.get_unchecked(..a.len() * i)));
         }
     }
-    let mut group = c.benchmark_group("count_bench_1byte");
+    let mut group = c.benchmark_group("count_bench_1byte_large");
     let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
     group.plot_config(plot_config);
     group_count_bench_show(group, test_strs_a.iter());
@@ -253,7 +265,7 @@ fn count_bench_3_large(c: &mut Criterion) {
             test_strs_s.push((*i, s10000.get_unchecked(..s.len() * i)));
         }
     }
-    let mut group = c.benchmark_group("count_bench_3byte_detailed");
+    let mut group = c.benchmark_group("count_bench_3byte_all_large");
     let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
     group.plot_config(plot_config);
     group_count_bench(group, test_strs_s.iter());
@@ -270,7 +282,7 @@ fn count_bench_3_large_show(c: &mut Criterion) {
             test_strs_s.push((*i, s10000.get_unchecked(..s.len() * i)));
         }
     }
-    let mut group = c.benchmark_group("count_bench_3byte");
+    let mut group = c.benchmark_group("count_bench_3byte_large");
     let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
     group.plot_config(plot_config);
     group_count_bench_show(group, test_strs_s.iter());
@@ -285,4 +297,4 @@ criterion_group!(
 );
 criterion_group!(benches_small, count_bench_1_small, count_bench_1_s1_small);
 criterion_group!(benches_small_mix1, count_bench_1_small_mix1);
-criterion_main!(benches_show);
+criterion_main!(benches_large,benches_avx,benches_small,benches_small_mix1,benches_show);

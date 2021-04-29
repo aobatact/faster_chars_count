@@ -588,6 +588,14 @@ pub fn chars_count_256_iter(s: &str) -> usize {
     chars_count_usize(s)
 }
 
+pub fn chars_count_u128(s: &str) -> usize {
+    let slice: &[u8] = s.as_ref();
+    unsafe {
+        let (pre, mid, suf) = slice.align_to::<u128>();
+        count_u8(pre) + count_u128(mid) + count_u8(suf)
+    }
+}
+
 pub fn chars_count_usize(s: &str) -> usize {
     let slice: &[u8] = s.as_ref();
     unsafe {
@@ -622,7 +630,7 @@ fn count_u8(slice: &[u8]) -> usize {
     //if slice.len() == 0 { return 0 }
     let mut count = 0;
     for c in slice {
-        // 0x00 <= c <= 0x 7f | 0xc0 <= c <= 0xff
+        // (0x00 <= c <= 0x7f | 0xc0 <= c <= 0xff) == (c as i8 > -0x41)
         //let ci = *c as i8;
         //if ci > -0x41 { //no diff in bench with below
         if c & 0xC0 != 0x80 {
@@ -660,6 +668,18 @@ fn count_usize(slice: &[usize]) -> usize {
     for c in slice {
         let f = c | (!c >> 1);
         let n = f & 0x_4040_4040_4040_4040;
+        count += n.count_ones() as usize;
+    }
+    count
+}
+
+
+#[inline]
+fn count_u128(slice: &[u128]) -> usize {
+    let mut count = 0;
+    for c in slice {
+        let f = c | (!c >> 1);
+        let n = f & 0x_4040_4040_4040_4040_4040_4040_4040_4040;
         count += n.count_ones() as usize;
     }
     count
@@ -751,6 +771,11 @@ mod tests {
     #[test]
     fn count_64() {
         count_test_base(chars_count_u64);
+    }
+
+    #[test]
+    fn count_128() {
+        count_test_base(chars_count_u128);
     }
 
     #[test]
