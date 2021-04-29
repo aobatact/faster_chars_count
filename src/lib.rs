@@ -54,7 +54,7 @@ pub fn chars_count_mix1(s: &str) -> usize {
     count_u8(pre) + count_u8(suf) + mid_count
 }
 
-//split for u32 too
+//mix1 + split for u32 too
 pub fn chars_count_mix1a(s: &str) -> usize {
     let slice: &[u8] = s.as_ref();
     let (pre, mid_count, suf) = match slice.len() {
@@ -77,6 +77,7 @@ pub fn chars_count_mix1a(s: &str) -> usize {
     count_u8(pre) + count_u8(suf) + mid_count
 }
 
+//mix1 + bound is aligned size
 pub fn chars_count_mix1b(s: &str) -> usize {
     let slice: &[u8] = s.as_ref();
     let (pre, mid_count, suf) = match slice.len() {

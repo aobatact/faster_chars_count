@@ -42,7 +42,7 @@ fn group_count_bench<'a, M: Measurement>(
             &test_str.1,
             |b, i| b.iter(|| chars_count_mix1(i)),
         );
-        //mix 2 is slow
+        //mix 2 is slow so skip it.
         // group.bench_with_input(BenchmarkId::new("mix2", &test_str.0), &test_str.1, |b, i| {
         // b.iter(|| chars_count_mix2(i))
         // });
