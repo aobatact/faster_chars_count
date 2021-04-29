@@ -1,6 +1,6 @@
 [package]
 name = "faster-chars-count"
-version = "0.1.7"
+version = "0.2.0"
 authors = ["aobatact <aobatact144@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -8,6 +8,11 @@ description = "Library for counting length of chars faster than Chars::count()"
 repository = "https://github.com/aobatact/faster_chars_count"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["runtime_detect"]
+std = []
+runtime_detect = [ "std" ]
 
 [dependencies]
 

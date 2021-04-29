@@ -10,8 +10,9 @@
 //!
 //! Idea is that we only needs to count the byte witch is not a continuation byte. This can be done at the same time for 4byte ([`u64`]) or 32byte ([`__m256i`](`core::arch::x86_64::__m256i`) with avx2).
 
+#![cfg_attr(not(feature="std"), no_std)]
 #[cfg(target_arch = "x86_64")]
-use std::arch::x86_64::*;
+use core::arch::x86_64::*;
 
 /// Trait for counting chars faster than [`chars()`](`str::chars`).[`count()`](`std::str::Chars::count()`)
 pub trait CharsCount {
@@ -31,11 +32,20 @@ pub fn chars_count_str(s: &str) -> usize {
     chars_count_byte(s.as_ref())
 }
 
+#[cfg(feature = "runtime_detect")]
+fn use_avx2() -> bool {
+    cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2")
+}
+#[cfg(not(feature = "runtime_detect"))]
+const fn use_avx2() -> bool {
+    cfg!(target_arch = "x86_64") && cfg!(target_feature = "avx2")
+}
+
 /// Function version of faster `chars_count()` for `&[u8]`
 pub fn chars_count_byte(slice: &[u8]) -> usize {
     let (pre, mid_count, suf) = match slice.len() {
         //320 is from benchmark
-        320..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
+        320..=usize::MAX if use_avx2() => unsafe {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
             (pre, count_256(mid), suf)
         },
