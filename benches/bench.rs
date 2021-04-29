@@ -114,7 +114,7 @@ fn count_bench_1_small(c: &mut Criterion) {
 ///Count of repeated 'a' for small size. May be unaligned.
 fn count_bench_1_s1_small(c: &mut Criterion) {
     group_count_bench_base(
-        c.benchmark_group("count_bench_1byte_small_all"),
+        c.benchmark_group("count_bench_1byte_small_all_o1"),
         all_bench_list(),
         "a",
         (0..=65).into_iter().collect(),
@@ -122,14 +122,13 @@ fn count_bench_1_s1_small(c: &mut Criterion) {
     )
 }
 
-
 ///Count of repeated 'a' for small size. May be unaligned.
-fn count_bench_1_s1_small64(c: &mut Criterion) {
+fn count_bench_1_s1_small100(c: &mut Criterion) {
     group_count_bench_base(
-        c.benchmark_group("count_bench_1byte_around64_opt"),
+        c.benchmark_group("count_bench_1byte_around100_opt"),
         opt_bench_list(),
         "a",
-        vec![60, 70, 80, 90, 100],
+        vec![310],
         1,
     )
 }
@@ -146,6 +145,34 @@ fn count_bench_1_large(c: &mut Criterion) {
         "a",
         vec![1, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000],
         0,
+    )
+}
+
+fn count_bench_1_mid_show(c: &mut Criterion) {
+    let mut group = c.benchmark_group("count_bench_1byte_mid");
+    //let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
+    //group.plot_config(plot_config);
+
+    group_count_bench_base(
+        group,
+        show_bench_list(),
+        "a",
+        vec![100, 200, 300, 400, 500],
+        0,
+    )
+}
+
+fn count_bench_1_s1_mid_show(c: &mut Criterion) {
+    let mut group = c.benchmark_group("count_bench_1byte_mid_offset1");
+    //let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
+    //group.plot_config(plot_config);
+
+    group_count_bench_base(
+        group,
+        show_bench_list(),
+        "a",
+        vec![100, 200, 300, 400, 500],
+        1,
     )
 }
 
@@ -218,9 +245,16 @@ criterion_group!(benches_large, count_bench_1_large, count_bench_3_large);
 criterion_group!(
     benches_show,
     count_bench_1_large_show,
-    count_bench_3_large_show
+    count_bench_3_large_show,
+    count_bench_1_mid_show,
+    count_bench_1_s1_mid_show,
 );
-criterion_group!(benches_small_1, count_bench_1_small, count_bench_1_s1_small, count_bench_1_s1_small64);
+criterion_group!(
+    benches_small_1,
+    count_bench_1_small,
+    count_bench_1_s1_small,
+    count_bench_1_s1_small100
+);
 criterion_group!(benches_small_3, count_bench_3_small, count_bench_3_s1_small);
 criterion_group!(benches_small_mix1, count_bench_1_small_mix1);
 criterion_main!(

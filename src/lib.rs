@@ -37,8 +37,8 @@ pub fn chars_count_str(s: &str) -> usize {
 pub fn chars_count_mix1(s: &str) -> usize {
     let slice: &[u8] = s.as_ref();
     let (pre, mid_count, suf) = match slice.len() {
-        // 35 is to ensure that mid.len() > 0
-        35..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
+        // 320 is from benchmark (count_bench_1byte_mid_offset1)
+        320..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
             (pre, count_256(mid), suf)
         },
@@ -92,6 +92,25 @@ pub fn chars_count_mix1b(s: &str) -> usize {
         4..=usize::MAX => unsafe {
             let (pre, mid, suf) = slice.align_to::<u32>();
             (pre, count_32(mid), suf)
+        },
+        1 => return 1,
+        0 => return 0,
+        _ => return count_u8(slice),
+    };
+    count_u8(pre) + count_u8(suf) + mid_count
+}
+
+//mix1 + bound is aligned size
+pub fn chars_count_mix1c(s: &str) -> usize {
+    let slice: &[u8] = s.as_ref();
+    let (pre, mid_count, suf) = match slice.len() {
+        32..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
+            let (pre, mid, suf) = slice.align_to::<__m256i>();
+            (pre, count_256(mid), suf)
+        },
+        8..=usize::MAX => unsafe {
+            let (pre, mid, suf) = slice.align_to::<u64>();
+            (pre, count_64(mid), suf)
         },
         1 => return 1,
         0 => return 0,
@@ -673,7 +692,6 @@ fn count_usize(slice: &[usize]) -> usize {
     count
 }
 
-
 #[inline]
 fn count_u128(slice: &[u128]) -> usize {
     let mut count = 0;
@@ -811,5 +829,19 @@ mod tests {
     #[test]
     fn count_mix3_t() {
         count_test_base(chars_count_mix3t);
+    }
+
+    #[test]
+    fn size() {
+        if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") {
+            assert_eq!(32, mem::align_of::<__m256i>());
+            for _ in 0..1000000 {
+                let st = "0".repeat(63);
+                let s: &[u8] = st.as_ref();
+                unsafe {
+                    assert!(1 <= s.align_to::<__m256i>().1.len());
+                }
+            }
+        }
     }
 }
