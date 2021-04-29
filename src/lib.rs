@@ -34,7 +34,8 @@ pub fn chars_count_str(s: &str) -> usize {
 /// Function version of faster `chars_count()` for `&[u8]`
 pub fn chars_count_byte(slice: &[u8]) -> usize {
     let (pre, mid_count, suf) = match slice.len() {
-        35..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
+        //320 is from benchmark
+        320..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
             (pre, count_256(mid), suf)
         },
