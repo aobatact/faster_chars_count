@@ -40,11 +40,18 @@ fn group_count_bench_base<'a, 'b, M: Measurement>(
 fn opt_bench_list() -> Vec<(&'static str, fn(&str) -> usize)> {
     vec![
         ("faster_chars_count(mix1)", chars_count_mix1),
+        ("faster_chars_count(u8)", chars_count_u8),
         ("faster_chars_count(usize)", chars_count_usize),
         ("faster_chars_count(avx2)", chars_count_256),
     ]
 }
 
+fn opt_bench_list_t() -> Vec<(&'static str, fn(&str) -> usize)> {
+    vec![
+        ("faster_chars_count(u8)", chars_count_u8),
+        ("faster_chars_count(usize)", chars_count_usize),
+    ]
+}
 fn show_bench_list() -> Vec<(&'static str, fn(&str) -> usize)> {
     vec![
         ("std", |s| s.chars().count()),
@@ -117,15 +124,37 @@ fn count_bench_1_s1_small(c: &mut Criterion) {
         c.benchmark_group("count_bench_1byte_small_all_o1"),
         all_bench_list(),
         "a",
-        (0..=65).into_iter().collect(),
+        (0..=65).step_by(7).collect(),
         1,
     )
 }
 
-///Count of repeated 'a' for small size. May be unaligned.
-fn count_bench_1_s1_small100(c: &mut Criterion) {
+fn count_bench_1_s1_small_opt(c: &mut Criterion) {
     group_count_bench_base(
-        c.benchmark_group("count_bench_1byte_around100_opt"),
+        c.benchmark_group("count_bench_1byte_small_show_o1"),
+        opt_bench_list(),
+        "a",
+        (8..=16).collect(),
+        //(0..=64).step_by(8).collect(),
+        1,
+    )
+}
+
+fn count_bench_1_s2_small_opt(c: &mut Criterion) {
+    group_count_bench_base(
+        c.benchmark_group("count_bench_1byte_small_show_o2"),
+        opt_bench_list_t(),
+        "a",
+        (12..=15).collect(),
+        //(0..=64).step_by(8).collect(),
+        2,
+    )
+}
+
+///Count of repeated 'a' for small size. May be unaligned.
+fn count_bench_1_s1_small300(c: &mut Criterion) {
+    group_count_bench_base(
+        c.benchmark_group("count_bench_1byte_around300_opt"),
         opt_bench_list(),
         "a",
         vec![310],
@@ -253,7 +282,9 @@ criterion_group!(
     benches_small_1,
     count_bench_1_small,
     count_bench_1_s1_small,
-    count_bench_1_s1_small100
+    count_bench_1_s1_small300,
+    count_bench_1_s1_small_opt,
+    count_bench_1_s2_small_opt,
 );
 criterion_group!(benches_small_3, count_bench_3_small, count_bench_3_s1_small);
 criterion_group!(benches_small_mix1, count_bench_1_small_mix1);

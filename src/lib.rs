@@ -42,6 +42,27 @@ pub fn chars_count_mix1(s: &str) -> usize {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
             (pre, count_256(mid), suf)
         },
+        // 15 is from benchmark
+        15..=usize::MAX => unsafe {
+            let (pre, mid, suf) = slice.align_to::<usize>();
+            (pre, count_usize(mid), suf)
+        },
+        1 => return 1,
+        0 => return 0,
+        _ => return count_u8(slice),
+    };
+    count_u8(pre) + count_u8(suf) + mid_count
+}
+
+//mix1 try to split the aligned block only once.
+pub fn chars_count_mix1d(s: &str) -> usize {
+    let slice: &[u8] = s.as_ref();
+    let (pre, mid_count, suf) = match slice.len() {
+        // 320 is from benchmark (count_bench_1byte_mid_offset1)
+        320..=usize::MAX if cfg!(target_arch = "x86_64") && is_x86_feature_detected!("avx2") => unsafe {
+            let (pre, mid, suf) = slice.align_to::<__m256i>();
+            (pre, count_256(mid), suf)
+        },
         // 11 is to ensure that mid.len() > 0
         11..=usize::MAX => unsafe {
             let (pre, mid, suf) = slice.align_to::<usize>();
