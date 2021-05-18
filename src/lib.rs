@@ -6,11 +6,10 @@
 //! assert_eq!(a.chars().count(), chars_count_str(a));
 //! assert_eq!(a.chars().count(), a.chars_count());
 //! ```
-//! Idea is from [UTF-8のコードポイントはどうやって高速に数えるか](https://qiita.com/saka1_p/items/ff49d981cfd56f3588cc), and [UTF-8のコードポイントはどうやってもっと高速に数えるか](https://qiita.com/umezawatakeshi/items/ed23935788756c800b86).
 //!
 //! Idea is that we only needs to count the byte witch is not a continuation byte. This can be done at the same time for 4byte ([`u64`]) or 32byte ([`__m256i`](`core::arch::x86_64::__m256i`) with avx2).
 
-#![cfg_attr(not(feature="std"), no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 #[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::*;
 
@@ -44,7 +43,7 @@ const fn use_avx2() -> bool {
 /// Function version of faster `chars_count()` for `&[u8]`
 pub fn chars_count_byte(slice: &[u8]) -> usize {
     let (pre, mid_count, suf) = match slice.len() {
-        //320 is from benchmark
+        //320 is from benchmark of unaligned byte slice.
         320..=usize::MAX if use_avx2() => unsafe {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
             (pre, count_256(mid), suf)
@@ -82,18 +81,18 @@ fn count_usize(slice: &[usize]) -> usize {
     count
 }
 
+const ZERO: __m256i = unsafe { core::mem::transmute([0_u8; 32]) };
+
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn count_256(slice: &[__m256i]) -> usize {
     let mut count = 0 as usize;
     let chunks = slice.chunks(255);
+    const GT: __m256i = unsafe { core::mem::transmute([-0x41_i8; 32]) };
     for block in chunks {
-        let mut sum = _mm256_setzero_si256();
+        let mut sum = ZERO;
         for s in block {
-            sum = _mm256_sub_epi8(
-                sum,
-                _mm256_cmpgt_epi8(_mm256_load_si256(s), _mm256_set1_epi8(-0x41)),
-            );
+            sum = _mm256_sub_epi8(sum, _mm256_cmpgt_epi8(_mm256_load_si256(s), GT));
         }
         count += avx2_horizontal_sum_epi8(sum);
     }
@@ -109,8 +108,8 @@ const fn _MM_SHUFFLE(z: u32, y: u32, x: u32, w: u32) -> i32 {
 #[inline]
 #[target_feature(enable = "avx2")]
 unsafe fn avx2_horizontal_sum_epi8(x: __m256i) -> usize {
-    let sumhi = _mm256_unpackhi_epi8(x, _mm256_setzero_si256());
-    let sumlo = _mm256_unpacklo_epi8(x, _mm256_setzero_si256());
+    let sumhi = _mm256_unpackhi_epi8(x, ZERO);
+    let sumlo = _mm256_unpacklo_epi8(x, ZERO);
     let sum16x16 = _mm256_add_epi16(sumhi, sumlo);
     let sum16x8 = _mm256_add_epi16(sum16x16, _mm256_permute2x128_si256(sum16x16, sum16x16, 1));
     let sum16x4 = _mm256_add_epi16(
