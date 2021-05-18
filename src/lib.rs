@@ -48,7 +48,8 @@ pub fn chars_count_byte(slice: &[u8]) -> usize {
             let (pre, mid, suf) = slice.align_to::<__m256i>();
             (pre, count_256(mid), suf)
         },
-        11..=usize::MAX => unsafe {
+        //15 is from benchmark of unaligned byte slice.
+        15..=usize::MAX => unsafe {
             let (pre, mid, suf) = slice.align_to::<usize>();
             (pre, count_usize(mid), suf)
         },
