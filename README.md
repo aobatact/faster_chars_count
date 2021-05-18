@@ -37,8 +37,7 @@ repeated "錆" (only 3byte utf8)
 
 ![bench 3byte](lines_3.svg)
 
-This is a peformance bench branch.
-Functions in lib.rs is to compare how we can improve the performance.
+See [performance](https://github.com/aobatact/faster_chars_count/tree/peformance) branch for details.
 
 
 ## future plan
