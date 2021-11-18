@@ -112,10 +112,11 @@ unsafe fn avx2_horizontal_sum_epi8(x: __m256i) -> usize {
     let sumhi = _mm256_unpackhi_epi8(x, ZERO);
     let sumlo = _mm256_unpacklo_epi8(x, ZERO);
     let sum16x16 = _mm256_add_epi16(sumhi, sumlo);
-    let sum16x8 = _mm256_add_epi16(sum16x16, _mm256_permute2x128_si256(sum16x16, sum16x16, 1));
+    let sum16x8 = _mm256_add_epi16(sum16x16, _mm256_permute2x128_si256::<1>(sum16x16, sum16x16));
+    const ADD_SHUFFLE : i32 = _MM_SHUFFLE(0, 0, 2, 3);
     let sum16x4 = _mm256_add_epi16(
         sum16x8,
-        _mm256_shuffle_epi32(sum16x8, _MM_SHUFFLE(0, 0, 2, 3)),
+        _mm256_shuffle_epi32::<ADD_SHUFFLE>(sum16x8),
     );
     let tmp = _mm256_extract_epi64(sum16x4, 0);
     let mut result = (tmp >> 0) & 0xffff;
